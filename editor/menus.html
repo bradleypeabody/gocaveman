@@ -1,0 +1,54 @@
+{{template "editor-page.html" .}}
+
+{{define "body"}}
+
+<!-- this is menus.html -->
+
+<!-- TODO: we're going to need a re-usable property editor that has a set of standard properties, plus a set of custom properties that can be string, int or raw json.  Nearly every object is going to have a "data" on it that will be edited with the custom properties. -->
+
+<style>
+#menu .menu-item {
+
+}
+</style>
+
+<div id="menu"></div>
+
+<div class="menu-item" nostyle="display:none">
+	<div class="item-area"><span class="icon">[]</span> <span class="label">Joey</span></div>
+	<div class="children"></div>
+</div>
+
+<script>
+
+var data = {
+	text: 'Root',
+	link: '/',
+	children: [
+		{text:'Item1',link:'/item1.html'},
+		{text:'Item2',link:'/item2.html',children:[
+			{text:'Item4',link:'/item4.html'},
+			{text:'Item5',link:'/item5.html'},
+		]},
+		{text:'Item3',link:'/item3.html'},
+	],
+};
+
+function BuildTree() {
+
+}
+
+function BuildTreeItem(item) {
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+	// console.log('waiting');
+
+
+
+});
+
+</script>
+
+
+{{end}}
