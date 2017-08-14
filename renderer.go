@@ -52,6 +52,12 @@ func DefaultRedirects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.HasSuffix(p, ".gohtml") {
+		p := path.Clean("/" + strings.TrimSuffix(p, ".gohtml"))
+		http.Redirect(w, r, p+qs, 301)
+		return
+	}
+
 	if strings.HasSuffix(p, ".html") {
 		p := path.Clean("/" + strings.TrimSuffix(p, ".html"))
 		http.Redirect(w, r, p+qs, 301)
@@ -79,8 +85,9 @@ func NewDefaultRenderer(bodyFs http.FileSystem, includeFs http.FileSystem) *Rend
 		BodyFs:    bodyFs,
 		IncludeFs: includeFs,
 		BodyTemplaters: map[string]BodyTemplater{
-			".html": &GoBodyTemplater{},
-			".md":   NewMarkdownBodyTemplater(),
+			".html":   &GoBodyTemplater{},
+			".gohtml": &GoBodyTemplater{},
+			".md":     NewMarkdownBodyTemplater(),
 		},
 		PathExpandFunc: DefaultPathExpand,
 	}
@@ -90,8 +97,10 @@ func DefaultPathExpand(p string) []string {
 	ext := path.Ext(p)
 	if ext == "" {
 		return []string{
+			path.Clean("/" + p + ".gohtml"),
 			path.Clean("/" + p + ".html"),
 			path.Clean("/" + p + ".md"),
+			path.Clean("/" + p + "/index.gohtml"),
 			path.Clean("/" + p + "/index.html"),
 			path.Clean("/" + p + "/index.md"),
 		}
