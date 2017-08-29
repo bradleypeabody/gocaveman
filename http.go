@@ -63,6 +63,59 @@ type ChainedHandler interface {
 	SetNextHandler(next http.Handler) (self ChainedHandler)
 }
 
+// BuildHandlerChain takes a HandlerList (slice of http.Handler instances) and finds any that implement ChainedHandler
+// and calls SetNextHandler() with the appropriate input to form a chain.  The return value is
+// a handler that calls the other handlers in the correct sequence, taking into account the
+// intended behavior of SetNextHandler.
+func BuildHandlerChain(hl HandlerList) http.Handler {
+
+	// nop := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+
+	var curList HandlerList
+	var ret http.Handler = curList
+
+	for len(hl) > 0 {
+
+		// pop handler from the end of the slice
+		lastH := hl[len(hl)-1]
+		hl = hl[:len(hl)-1]
+
+		if ch, ok := lastH.(ChainedHandler); ok {
+
+			// log.Printf("chained: lastH: %#v", lastH)
+
+			// if it's a ChainedHandler give it whatever ret is as it's chain
+			ch.SetNextHandler(ret)
+			// ret becomes this ChainedHandler
+			ret = ch
+			// and the list now chaoins only this ChainedHandler
+			curList = HandlerList{ch}
+
+		} else {
+
+			// log.Printf("regular: lastH: %#v", lastH)
+
+			// regular handler gets prepended to the list, and the list becomes ret
+			curList = append(HandlerList{lastH}, curList...)
+			ret = curList
+		}
+
+	}
+
+	return ret
+}
+
+type HandlerList []http.Handler
+
+func (hl HandlerList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, h := range hl {
+		if r.Context().Err() != nil {
+			return
+		}
+		h.ServeHTTP(w, r)
+	}
+}
+
 // // HandlerParent is meant to be embedded in handlers that need to modify
 // // the request context and then let other handlers run with that modified context.
 // type HandlerParent struct {
@@ -76,25 +129,25 @@ type ChainedHandler interface {
 // HandlerChain is a slice of http.Handler instances which is called in sequence
 // until the request context has an error (which includes being cancelled because
 // something was written to the output, the common case).
-type HandlerChain []http.Handler
+// type HandlerChain []http.Handler
 
 // func (ch HandlerChain) AddHandler(h http.Handler) StackableHandler {
 // 	ret := append(ch, h)
 // 	return ret
 // }
 
-func NewHandlerChain(hs ...http.Handler) HandlerChain {
-	return HandlerChain(hs)
-}
+// func NewHandlerChain(hs ...http.Handler) HandlerChain {
+// 	return HandlerChain(hs)
+// }
 
-func (ch HandlerChain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	for _, h := range ch {
-		if r.Context().Err() != nil {
-			return
-		}
-		h.ServeHTTP(w, r)
-	}
-}
+// func (ch HandlerChain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	for _, h := range ch {
+// 		if r.Context().Err() != nil {
+// 			return
+// 		}
+// 		h.ServeHTTP(w, r)
+// 	}
+// }
 
 // type ChainWR struct {
 // 	W http.ResponseWriter
