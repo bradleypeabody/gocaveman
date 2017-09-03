@@ -1,4 +1,4 @@
-package gocaveman
+package menus
 
 import (
 	"io/ioutil"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestJSONFileMenus(t *testing.T) {
+func TestFileMenus(t *testing.T) {
 
 	assert := assert.New(t)
 
@@ -18,11 +18,11 @@ func TestJSONFileMenus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	menus := NewJSONFileMenus(fs, "/menus")
+	fm := NewFileMenus(fs, "/menus")
 
-	menu := &Menu{RootMenuItem: NewMenuItem("/item1.html", "Item 1")}
+	menu := NewMenuItem("/item1.html", "Item 1")
 
-	err = menus.WriteMenu("test1", menu)
+	err = fm.WriteMenu("test1", menu)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,11 +39,11 @@ func TestJSONFileMenus(t *testing.T) {
 	}
 	t.Logf("DATA: %s", b)
 
-	menu, err = menus.ReadMenu("test1")
+	menu, err = fm.ReadMenu("test1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal("/item1.html", menu.RootMenuItem.Link)
+	assert.Equal("/item1.html", menu.Link)
 
 }

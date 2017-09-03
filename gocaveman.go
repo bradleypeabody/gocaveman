@@ -1,6 +1,7 @@
 package gocaveman
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 )
@@ -13,3 +14,5 @@ func CheckValidToken(t string) error {
 	}
 	return nil
 }
+
+var ErrNotFound = errors.New("not found")

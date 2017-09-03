@@ -1,4 +1,4 @@
-package gocaveman
+package menus
 
 import (
 	"encoding/json"
@@ -10,16 +10,16 @@ import (
 	"github.com/spf13/afero"
 )
 
-func NewJSONFileMenus(fs afero.Fs, dir string) *JSONFileMenus {
-	return &JSONFileMenus{Fs: fs, Dir: dir}
+func NewFileMenus(fs afero.Fs, dir string) *FileMenus {
+	return &FileMenus{Fs: fs, Dir: dir}
 }
 
-type JSONFileMenus struct {
+type FileMenus struct {
 	Fs  afero.Fs
 	Dir string
 }
 
-func (f *JSONFileMenus) MenuIDs() ([]string, error) {
+func (f *FileMenus) MenuIDs() ([]string, error) {
 
 	dirf, err := f.Fs.Open(f.Dir)
 	if err != nil {
@@ -42,7 +42,7 @@ func (f *JSONFileMenus) MenuIDs() ([]string, error) {
 	return ret, nil
 }
 
-func (f *JSONFileMenus) ReadMenu(id string) (*Menu, error) {
+func (f *FileMenus) ReadMenu(id string) (*MenuItem, error) {
 
 	inf, err := f.Fs.Open(filepath.Join(f.Dir, id+".json"))
 	if err != nil {
@@ -57,7 +57,7 @@ func (f *JSONFileMenus) ReadMenu(id string) (*Menu, error) {
 		return nil, err
 	}
 
-	m := Menu{}
+	m := MenuItem{}
 	err = json.Unmarshal(b, &m)
 	if err != nil {
 		return nil, err
@@ -66,12 +66,12 @@ func (f *JSONFileMenus) ReadMenu(id string) (*Menu, error) {
 	return &m, nil
 }
 
-func (f *JSONFileMenus) DeleteMenu(id string) error {
+func (f *FileMenus) DeleteMenu(id string) error {
 
 	return f.Fs.Remove(filepath.Join(f.Dir, id+".json"))
 }
 
-func (f *JSONFileMenus) WriteMenu(id string, menu *Menu) error {
+func (f *FileMenus) WriteMenu(id string, menu *MenuItem) error {
 
 	outf, err := f.Fs.OpenFile(filepath.Join(f.Dir, id+".json"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {

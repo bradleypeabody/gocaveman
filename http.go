@@ -3,6 +3,7 @@ package gocaveman
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,10 +16,14 @@ import (
 	"net/http/httputil"
 	"os"
 	"path"
+	"reflect"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bradleypeabody/gouuidv6"
 	"github.com/spf13/afero"
 )
 
@@ -485,4 +490,146 @@ func (h *CtxMapHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *CtxMapHandler) SetNextHandler(next http.Handler) ChainedHandler {
 	h.NextHandler = next
 	return h
+}
+
+// FIXME de-duplicate between this and JSONMarshalResponse
+func WriteJSON(w http.ResponseWriter, va interface{}, code int) {
+	v := reflect.ValueOf(va)
+	t := reflect.TypeOf(va)
+
+	w.Header().Set("content-type", "application/json")
+
+	w.WriteHeader(code)
+
+	if va == nil {
+		return
+	}
+
+	if t.Kind() == reflect.Slice && v.IsNil() {
+		// special case for nil slices, always just write as '[]', otherwise if it's actually nil then
+		// it outputs "null" which is just a dumb variation that the client now has to handle, so we fix that here
+		w.Write([]byte(`[]`))
+		return
+	}
+
+	// otherwise JSONify like we normally would
+	json.NewEncoder(w).Encode(va)
+	// yes we ignore the error here
+	return
+
+}
+
+func ReadJSON(r *http.Request, va interface{}) error {
+
+	ct, _, _ := mime.ParseMediaType(r.Header.Get("content-type"))
+
+	if ct != "application/json" {
+		return errors.New("invalid content type")
+	}
+
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(va)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// PathParser is a simple helper to match paths and extract parts from them.
+type PathParser struct {
+	Args []string // arguments matched, 0 indexed
+}
+
+// Match looks at a path against a pattern if it matches returns true
+// and replaces the Args with the matches.  Placeholders can be
+// "%S" (any non-empty string not containing a slash) or "%d" (any decimal number).
+func (pp *PathParser) Match(path string, pattern string) bool {
+
+	// if no placeholders just check for exact match
+	if !strings.Contains(pattern, "%") {
+		if path == pattern {
+			pp.Args = nil
+			return true
+		}
+		return false
+	}
+
+	// convert pattern to a regexp with the approach match groups
+	pre := `^` + pattern + `$`
+	pre = strings.Replace(pre, "%S", `([^/]+)`, -1)
+	pre = strings.Replace(pre, "%d", `([0-9]+)`, -1)
+
+	// if matches then store result in Args
+	m := regexp.MustCompile(pre).FindStringSubmatch(path)
+	if len(m) > 1 {
+		pp.Args = m[1:]
+		return true
+	}
+
+	// nope, didn't match
+	return false
+
+}
+
+func (pp *PathParser) ArgString(n int) (ret string) {
+	return pp.ArgStringDef(n, "")
+}
+
+func (pp *PathParser) ArgStringDef(n int, defaultVal string) (ret string) {
+
+	ret = defaultVal
+
+	if n >= len(pp.Args) {
+		return
+	}
+
+	ret = pp.Args[n]
+
+	return
+}
+
+func (pp *PathParser) ArgInt(n int) (ret int) {
+	return pp.ArgIntDef(n, 0)
+}
+
+func (pp *PathParser) ArgIntDef(n int, defaultVal int) (ret int) {
+
+	ret = defaultVal
+
+	if n >= len(pp.Args) {
+		return
+	}
+
+	v, err := strconv.Atoi(pp.Args[n])
+	if err != nil {
+		return
+	}
+
+	ret = v
+
+	return
+}
+
+func (pp *PathParser) ArgUUIDB64(n int) gouuidv6.UUIDB64 {
+	s := pp.Args[n]
+	ret, err := gouuidv6.ParseB64(s)
+	if err != nil {
+		return gouuidv6.UUIDB64{}
+	}
+	return ret
+}
+
+func AtoiAnyDef(s interface{}, vdef int) int {
+	s2 := fmt.Sprintf("%v", s)
+	return AtoiDef(s2, vdef)
+}
+
+func AtoiDef(s string, vdef int) int {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return vdef
+	}
+	return v
 }

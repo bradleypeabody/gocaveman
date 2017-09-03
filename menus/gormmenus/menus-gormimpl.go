@@ -1,5 +1,7 @@
 package gormimpl
 
+// FIXME: this needs to move out to a separate project - no gorm deps in core
+
 import (
 	"bytes"
 	"encoding/json"
