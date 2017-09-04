@@ -31,92 +31,81 @@ func (h *MenuAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if retErr := func() error {
+	var pp cvm.PathParser
 
-		var pp cvm.PathParser
+	switch {
 
-		switch {
-
-		case r.Method == "GET" && p == h.Prefix:
-			ids, err := h.Menus.MenuIDs()
-			if err != nil {
-				return err
-			}
-
-			ret := make([]map[string]interface{}, 0, len(ids))
-
-			for _, id := range ids {
-				ret = append(ret, map[string]interface{}{
-					"id":   id,
-					"path": h.Prefix + "/" + id,
-				})
-			}
-
-			cvm.WriteJSON(w, ret, 200)
+	case r.Method == "GET" && p == h.Prefix:
+		ids, err := h.Menus.MenuIDs()
+		if err != nil {
+			cvm.HTTPError(w, r, err, "internal error", 500)
 			break
-
-		case (r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH") && pp.Match(p, h.Prefix+"/%S"):
-
-			id := pp.ArgString(0)
-
-			var menuItem MenuItem
-
-			err := cvm.ReadJSON(r, &menuItem)
-			if err != nil {
-				return err
-			}
-
-			err = h.Menus.WriteMenu(id, &menuItem)
-			if err != nil {
-				return err
-			}
-
-			cvm.WriteJSON(w, menuItem, 200)
-
-			break
-
-			// case pp.Match(p, h.Prefix+"/%S"):
-
-			// case pp.Match r.Method == "GET" && p == :
-
-		case (r.Method == "GET" || r.Method == "HEAD") && pp.Match(p, h.Prefix+"/%S"):
-
-			id := pp.ArgString(0)
-
-			menuItem, err := h.Menus.ReadMenu(id)
-			if err != nil {
-				return err
-			}
-			if r.Method == "HEAD" {
-				w.WriteHeader(200)
-				break
-			}
-
-			cvm.WriteJSON(w, menuItem, 200)
-			break
-
-		case r.Method == "DELETE" && pp.Match(p, h.Prefix+"/%S"):
-
-			id := pp.ArgString(0)
-
-			err := h.Menus.DeleteMenu(id)
-			if err != nil {
-				return err
-			}
-
-			w.WriteHeader(204)
-			break
-
 		}
 
-		return nil
+		ret := make([]map[string]interface{}, 0, len(ids))
 
-	}(); retErr != nil {
-		if retErr == ErrNotFound {
-			http.NotFound(w, r)
-		} else {
-			cvm.HTTPError(w, r, retErr, "error during request processing", 500)
+		for _, id := range ids {
+			ret = append(ret, map[string]interface{}{
+				"id":   id,
+				"path": h.Prefix + "/" + id,
+			})
 		}
+
+		cvm.WriteJSON(w, ret, 200)
+		break
+
+	case (r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH") && pp.Match(p, h.Prefix+"/%S"):
+
+		id := pp.ArgString(0)
+
+		var menuItem MenuItem
+
+		err := cvm.ReadJSON(r, &menuItem)
+		if err != nil {
+			cvm.HTTPError(w, r, err, "internal error", 500)
+			break
+		}
+
+		err = h.Menus.WriteMenu(id, &menuItem)
+		if err != nil {
+			cvm.HTTPError(w, r, err, "internal error", 500)
+			break
+		}
+
+		cvm.WriteJSON(w, menuItem, 200)
+
+		break
+
+	case (r.Method == "GET" || r.Method == "HEAD") && pp.Match(p, h.Prefix+"/%S"):
+
+		id := pp.ArgString(0)
+
+		menuItem, err := h.Menus.ReadMenu(id)
+		if err != nil {
+			cvm.HTTPError(w, r, err, "internal error", 500)
+			break
+		}
+		if r.Method == "HEAD" {
+			w.WriteHeader(200)
+			break
+		}
+
+		cvm.WriteJSON(w, menuItem, 200)
+		break
+
+	case r.Method == "DELETE" && pp.Match(p, h.Prefix+"/%S"):
+
+		id := pp.ArgString(0)
+
+		err := h.Menus.DeleteMenu(id)
+		if err != nil {
+			cvm.HTTPError(w, r, err, "internal error", 500)
+			break
+		}
+
+		w.WriteHeader(204)
+		break
+
 	}
 
 }

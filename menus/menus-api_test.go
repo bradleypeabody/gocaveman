@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMenuAPIHandler(t *testing.T) {
 
-	t.Logf("TestMenuAPIHandler")
+	assert := assert.New(t)
 
 	// fs := afero.NewBasePathFs(afero.NewOsFs(), "")
 	fs := afero.NewMemMapFs()
@@ -33,13 +34,14 @@ func TestMenuAPIHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(200, res.StatusCode)
 
 	b, err := httputil.DumpResponse(res, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("POST RESPONSE:\n%s", b)
+	t.Logf("POST MENU RESPONSE:\n%s", b)
 
 	// now retrieve it
 	req, _ = http.NewRequest("GET", srv.URL+"/api/menus/test123", nil)
@@ -47,22 +49,40 @@ func TestMenuAPIHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(200, res.StatusCode)
 
 	b, err = httputil.DumpResponse(res, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("GET RESPONSE: %s", b)
+	t.Logf("GET MENU RESPONSE: %s", b)
 
+	// get the list
+	req, _ = http.NewRequest("GET", srv.URL+"/api/menus", nil)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(200, res.StatusCode)
+
+	b, err = httputil.DumpResponse(res, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("GET INDEX RESPONSE: %s", b)
+	assert.Contains(string(b), "test123")
+
+	// delete it
 	req, _ = http.NewRequest("DELETE", srv.URL+"/api/menus/test123", nil)
 	res, err = client.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(204, res.StatusCode)
 
 	b, err = httputil.DumpResponse(res, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("DELETE RESPONSE: %s", b)
+	t.Logf("DELETE MENU RESPONSE: %s", b)
 }

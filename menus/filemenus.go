@@ -46,6 +46,9 @@ func (f *FileMenus) ReadMenu(id string) (*MenuItem, error) {
 
 	inf, err := f.Fs.Open(filepath.Join(f.Dir, id+".json"))
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	defer inf.Close()

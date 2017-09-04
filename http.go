@@ -523,7 +523,8 @@ func ReadJSON(r *http.Request, va interface{}) error {
 
 	ct, _, _ := mime.ParseMediaType(r.Header.Get("content-type"))
 
-	if ct != "application/json" {
+	// must either be json, plain or type omitted
+	if len(ct) > 0 && (ct != "application/json") && (ct != "text/plain") {
 		return errors.New("invalid content type")
 	}
 

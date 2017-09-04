@@ -2,6 +2,7 @@ package gocaveman
 
 import (
 	"bytes"
+	"context"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -172,6 +173,12 @@ func (rr *Renderer) ServeHTTPPath(w http.ResponseWriter, r *http.Request, p stri
 
 		log.Printf("FIXME: figure out FuncMap - sensible defaults with a way to add or override")
 
+		// t.Funcs(template.FuncMap())
+		// FIXME: this is placeholder
+		t.Funcs(map[string]interface{}{
+			"html": func(s string) template.HTML { return template.HTML(s) },
+		})
+
 		// log.Printf("page-meta: %#v", ctx.Value("page-meta"))
 
 		// tctx := struct {
@@ -181,6 +188,9 @@ func (rr *Renderer) ServeHTTPPath(w http.ResponseWriter, r *http.Request, p stri
 		// 	Context: ctx,
 		// 	Request: r,
 		// }
+
+		// FIXME: do we need this? or is there already a request in there - looks like not, but think this through
+		ctx = context.WithValue(ctx, "req", r)
 
 		var wb bytes.Buffer
 
